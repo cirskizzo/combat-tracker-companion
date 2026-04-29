@@ -21,6 +21,37 @@
   vertical-align: baseline;
 }
 
+/* Modalità "below": entrambe le risorse occupano la propria riga sotto al
+   nome (figlie di .token-name che è flex-column). Niente margine sinistro
+   ereditato dalla modalità inline. */
+.ctc-active .combatant .ctc-resources.ctc-below {
+  display: flex;
+  margin: 1px 0 0 0;
+  font-size: 0.9em;
+}
+
+/* Quando il nome del combatant ha il nostro wrapper interno (.ctc-name-text)
+   trasformiamo il suo contenitore in un flex row, così:
+   - il nome viene troncato con "..." se eccede la larghezza disponibile
+   - le risorse restano visibili e ancorate a destra sulla stessa riga */
+.ctc-active .combatant *:has(> .ctc-name-text) {
+  display: flex;
+  align-items: baseline;
+  min-width: 0;
+}
+
+.ctc-active .combatant .ctc-name-text {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ctc-active .combatant .ctc-name-text + .ctc-resources {
+  flex-shrink: 0;
+}
+
 /* Singolo valore di risorsa */
 .ctc-resource {
   padding: 0 2px;

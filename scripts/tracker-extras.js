@@ -162,6 +162,34 @@ export const TrackerExtras = {
       .replace(/</g, "&lt;");
   },
 
+  /**
+   * Wrappa i text-node diretti dell'elemento target in uno <span class="ctc-name-text">.
+   * Serve per consentire al CSS di ellipsificare il nome del combatant tenendo
+   * comunque visibili le risorse iniettate sulla destra dello stesso rigo.
+   * Idempotente: se già wrappato, non fa nulla.
+   * @private
+   */
+  _ensureNameTextWrapped($target) {
+    if ($target.children(".ctc-name-text").length > 0) return;
+
+    const textNodes = $target.contents().filter(function () {
+      return (
+        this.nodeType === Node.TEXT_NODE &&
+        this.textContent.trim().length > 0
+      );
+    });
+
+    if (textNodes.length === 0) return;
+
+    const text = textNodes
+      .toArray()
+      .map((n) => n.textContent)
+      .join("");
+    textNodes.remove();
+
+    $target.prepend($('<span class="ctc-name-text"></span>').text(text));
+  },
+
   // ==========================================================================
   // CALLBACK: Rendering del tracker
   // ==========================================================================
@@ -178,10 +206,12 @@ export const TrackerExtras = {
     if (!game.user.isGM) return; // Solo GM
     if (!game.settings.get(MODULE_ID, "trackerExtrasEnabled")) return;
 
-    // Solo il Combat Tracker standard di Foundry (sidebar). Coprire anche gli
-    // override di sistema (CombatTracker5e, ecc.) confrontando l'istanza con
-    // ui.combat invece del nome della classe. Esclude Carousel e altri tracker.
-    if (app !== ui.combat) return;
+    // Solo il Combat Tracker standard di Foundry (sidebar e pop-out). Il pop-out
+    // crea una nuova istanza della stessa classe di ui.combat: matchando per
+    // classe (e non per identità di istanza) li copriamo entrambi e includiamo
+    // anche gli override di sistema (CombatTracker5e, ecc.). Carousel e altri
+    // tracker custom hanno classi diverse e restano esclusi.
+    if (!ui.combat || !(app instanceof ui.combat.constructor)) return;
 
     // Normalizza html: in v14 può essere HTMLElement, in v13 jQuery
     const $html = html instanceof jQuery ? html : $(html);
@@ -272,19 +302,46 @@ export const TrackerExtras = {
 
     if (parts.length === 0) return;
 
+    // Cleanup di iniezioni e wrappature precedenti (anche se cambiamo modalità
+    // tra render successivi)
+    $combatant.find(".ctc-resources").remove();
+    $combatant.find(".ctc-name-text").each(function () {
+      $(this).replaceWith(document.createTextNode(this.textContent));
+    });
+
+    // Modalità di rendering:
+    // - 2 risorse → riga sotto al nome (evita di restringere troppo la colonna
+    //   nome e spingere l'iniziativa fuori)
+    // - 1 risorsa → inline accanto al nome
+    const isBelow = parts.length === 2;
     const separator = `<span class="ctc-sep">/</span>`;
     const $injection = $(
-      `<span class="ctc-resources">${parts.join(separator)}</span>`
+      `<span class="ctc-resources${isBelow ? " ctc-below" : ""}">${parts.join(separator)}</span>`
     );
 
-    // Rimuovi vecchie injection (se re-render)
-    $combatant.find(".ctc-resources").remove();
+    if (isBelow) {
+      // Inseriamo dopo il nome ma prima dei controlli (icone occhio, teschio,
+      // ping...). Cadiamo sull'append a .token-name se i controlli mancano,
+      // o al combatant come ultimo fallback.
+      const $tokenName = $combatant.find(".token-name").first();
+      if ($tokenName.length > 0) {
+        const $controls = $tokenName.children(".combatant-controls").first();
+        if ($controls.length > 0) {
+          $controls.before($injection);
+        } else {
+          $tokenName.append($injection);
+        }
+      } else {
+        $combatant.append($injection);
+      }
+      return;
+    }
 
-    // Trova il punto di inserimento dentro l'elemento del nome del combatant,
-    // così l'injection risulta inline nella stessa riga di testo.
-    // v14 standard usa <strong class="name">; versioni precedenti usavano
-    // <h4>/<h3>. .token-name è solo un fallback estremo: è un flex column,
-    // quindi appendere lì porta l'injection su una riga sotto.
+    // Modalità inline: trova il punto di inserimento dentro l'elemento del
+    // nome del combatant, così l'injection risulta inline nella stessa riga
+    // di testo. v14 standard usa <strong class="name">; versioni precedenti
+    // usavano <h4>/<h3>. .token-name è solo un fallback estremo: è un flex
+    // column, quindi appendere lì porta l'injection su una riga sotto.
     const selectors = [
       ".token-name .name",
       ".token-name strong",
@@ -310,6 +367,9 @@ export const TrackerExtras = {
     }
 
     if ($target.length > 0) {
+      // Wrappa il testo del nome così il CSS può ellipsificarlo senza
+      // mandare a capo l'injection quando il nome è troppo lungo
+      this._ensureNameTextWrapped($target);
       $target.append($injection);
     } else {
       // Fallback: appendi al combatant
