@@ -2,7 +2,7 @@
   "id": "combat-tracker-companion",
   "title": "Combat Tracker Companion",
   "description": "Estende il Combat Tracker di Foundry VTT con auto-play di playlist musicali all'avvio del combattimento e visualizzazione di una risorsa secondaria (es. AC) nel tracker standard. Pensato per integrarsi con il modulo Carousel Combat Tracker di TheRipper93.",
-  "version": "0.1.2",
+  "version": "0.1.3",
   "compatibility": {
     "minimum": "13",
     "verified": "14",

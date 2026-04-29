@@ -145,8 +145,9 @@ export const CombatMusic = {
   // ==========================================================================
   /**
    * Cattura lo stato di tutte le playlist correntemente in riproduzione,
-   * filtrando per channel "music" se richiesto.
-   * @returns {Array<{playlistId, soundId, currentTime, mode}>}
+   * filtrando per channel "music" se richiesto. Il ripristino fa ripartire
+   * ogni traccia dall'inizio (non salviamo l'offset).
+   * @returns {Array<{playlistId, soundId}>}
    */
   captureCurrentMusicState() {
     const onlyMusic = game.settings.get(MODULE_ID, "pauseOnlyMusic");
@@ -154,19 +155,13 @@ export const CombatMusic = {
 
     for (const playlist of game.playlists) {
       if (!playlist.playing) continue;
-
-      // Filtra per channel music se richiesto
       if (onlyMusic && playlist.channel !== "music") continue;
 
-      // Salva ogni suono in playback con il timestamp
       for (const sound of playlist.sounds) {
         if (!sound.playing) continue;
-
         state.push({
           playlistId: playlist.id,
           soundId: sound.id,
-          currentTime: sound.sound?.currentTime ?? 0,
-          mode: playlist.mode,
         });
       }
     }
@@ -193,12 +188,11 @@ export const CombatMusic = {
   // HELPER: Ripristina stato musicale
   // ==========================================================================
   /**
-   * Ripristina le playlist allo stato salvato, riprendendo dalla traccia
-   * e dal timestamp esatti.
+   * Ripristina le playlist allo stato salvato facendo ripartire ogni traccia
+   * dall'inizio.
    * @param {Array} state - Stato catturato da captureCurrentMusicState()
    */
   async restoreMusicState(state) {
-    // Raggruppa per playlist
     const byPlaylist = new Map();
     for (const entry of state) {
       if (!byPlaylist.has(entry.playlistId)) {
@@ -214,23 +208,12 @@ export const CombatMusic = {
         continue;
       }
 
-      // Avvia ogni suono e poi setta il currentTime
       for (const entry of sounds) {
         const sound = playlist.sounds.get(entry.soundId);
         if (!sound) continue;
 
         try {
           await playlist.playSound(sound);
-
-          // Aspetta che il suono sia pronto e setta il timestamp
-          if (sound.sound && entry.currentTime > 0) {
-            // Piccolo delay per assicurarsi che il sound sia caricato
-            setTimeout(() => {
-              if (sound.sound) {
-                sound.sound.currentTime = entry.currentTime;
-              }
-            }, 100);
-          }
         } catch (e) {
           warn(`Errore nel ripristino suono ${entry.soundId}:`, e);
         }
@@ -247,86 +230,95 @@ export const CombatMusic = {
    * @returns {Promise<Playlist|null>} La playlist scelta o null se annullato
    */
   async showPlaylistPicker(playlists) {
-    const buttons = {};
+    const buttons = playlists.map((p, i) => ({
+      action: `p${i}`,
+      icon: "fas fa-music",
+      label: p.name,
+      callback: () => p,
+    }));
 
-    playlists.forEach((p, i) => {
-      buttons[`p${i}`] = {
-        icon: '<i class="fas fa-music"></i>',
-        label: p.name,
-        callback: () => p,
-      };
-    });
-
-    buttons.cancel = {
-      icon: '<i class="fas fa-times"></i>',
+    buttons.push({
+      action: "cancel",
+      icon: "fas fa-times",
       label: game.i18n.localize("CTC.dialog.cancel"),
       callback: () => null,
-    };
-
-    return new Promise((resolve) => {
-      const dialog = new Dialog({
-        title: game.i18n.localize("CTC.dialog.choosePlaylist.title"),
-        content: `<p>${game.i18n.localize("CTC.dialog.choosePlaylist.content")}</p>`,
-        buttons,
-        default: "p0",
-        close: () => resolve(null),
-      });
-
-      // Override callback per resolvere la promise
-      const originalButtons = dialog.data.buttons;
-      for (const key of Object.keys(originalButtons)) {
-        const original = originalButtons[key].callback;
-        originalButtons[key].callback = (html) => {
-          const result = original(html);
-          resolve(result);
-        };
-      }
-
-      dialog.render(true);
     });
+
+    const result = await foundry.applications.api.DialogV2.wait({
+      window: { title: game.i18n.localize("CTC.dialog.choosePlaylist.title") },
+      content: `<p>${game.i18n.localize("CTC.dialog.choosePlaylist.content")}</p>`,
+      buttons,
+      default: "p0",
+      rejectClose: false,
+    });
+
+    return result ?? null;
   },
 };
 
 // ============================================================================
 // APPLICATION: Configurazione playlist (menu)
 // ============================================================================
-class PlaylistConfigApp extends FormApplication {
-  static get defaultOptions() {
-    return foundry.utils.mergeObject(super.defaultOptions, {
-      id: "ctc-playlist-config",
-      title: game.i18n.localize("CTC.settings.combatPlaylistsMenu.label"),
-      template: `modules/${MODULE_ID}/templates/playlist-config.hbs`,
+const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
+
+class PlaylistConfigApp extends HandlebarsApplicationMixin(ApplicationV2) {
+  static DEFAULT_OPTIONS = {
+    id: "ctc-playlist-config",
+    tag: "form",
+    window: {
+      title: "CTC.settings.combatPlaylistsMenu.label",
+      icon: "fas fa-music",
+    },
+    position: {
       width: 500,
       height: "auto",
+    },
+    form: {
+      handler: PlaylistConfigApp._onSubmit,
       closeOnSubmit: true,
-    });
-  }
+    },
+  };
 
-  getData() {
+  static PARTS = {
+    form: {
+      // Path inlined: MODULE_ID è in TDZ qui per via dell'import circolare con main.js
+      template: "modules/combat-tracker-companion/templates/playlist-config.hbs",
+    },
+  };
+
+  async _prepareContext() {
     const selected = game.settings.get(MODULE_ID, "combatPlaylists") || [];
     const allPlaylists = Array.from(game.playlists).map((p) => ({
       id: p.id,
       name: p.name,
     }));
 
-    // 3 slot, ognuno con la playlist scelta o "" se vuoto
-    const slots = [0, 1, 2].map((i) => ({
-      index: i,
-      selectedId: selected[i] || "",
-    }));
+    // 3 slot, ognuno con: numero per il label, lista di opzioni con flag
+    // "selected" precalcolato. Tutto in JS così il template non dipende da
+    // helper Handlebars custom (es. add, ifEquals) che non sono garantiti
+    // come built-in di Foundry.
+    const slots = [0, 1, 2].map((i) => {
+      const selectedId = selected[i] || "";
+      return {
+        index: i,
+        number: i + 1,
+        selectedId,
+        options: allPlaylists.map((p) => ({
+          id: p.id,
+          name: p.name,
+          selected: p.id === selectedId,
+        })),
+      };
+    });
 
-    return {
-      slots,
-      allPlaylists,
-    };
+    return { slots };
   }
 
-  async _updateObject(event, formData) {
-    const ids = [
-      formData.slot0,
-      formData.slot1,
-      formData.slot2,
-    ].filter((id) => id && id !== "");
+  static async _onSubmit(event, form, formData) {
+    const data = formData.object;
+    const ids = [data.slot0, data.slot1, data.slot2].filter(
+      (id) => id && id !== ""
+    );
 
     await game.settings.set(MODULE_ID, "combatPlaylists", ids);
     log(`Playlist di combat salvate: ${ids.length}`);
