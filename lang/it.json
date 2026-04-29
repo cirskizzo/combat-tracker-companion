@@ -1,0 +1,43 @@
+{
+  "CTC": {
+    "module": {
+      "title": "Combat Tracker Companion"
+    },
+    "settings": {
+      "musicEnabled": {
+        "name": "Abilita musica di combattimento",
+        "hint": "Se attivo, all'inizio del combattimento viene avviata una playlist a scelta tra quelle configurate."
+      },
+      "pauseOnlyMusic": {
+        "name": "Metti in pausa solo il canale Music",
+        "hint": "Se attivo, all'avvio del combat vengono messe in pausa solo le playlist con canale 'Music'. Disattivando questa opzione vengono pausate tutte le playlist in riproduzione."
+      },
+      "combatPlaylists": {
+        "name": "Playlist di combattimento",
+        "hint": "Lista delle playlist da utilizzare durante il combat (massimo 3)."
+      },
+      "combatPlaylistsMenu": {
+        "name": "Playlist di combattimento",
+        "label": "Configura Playlist",
+        "hint": "Apri il menu per scegliere fino a 3 playlist da utilizzare durante il combat. Se ne configuri più di una, ti verrà chiesto quale usare all'avvio del combattimento."
+      },
+      "trackerExtrasEnabled": {
+        "name": "Mostra risorsa secondaria nel tracker",
+        "hint": "Se attivo, nel Combat Tracker standard viene visualizzata anche la risorsa secondaria (es. CA) accanto alla primaria (es. PF). I valori e i colori vengono letti dalla configurazione del modulo Carousel Combat Tracker. Visibile solo al GM."
+      }
+    },
+    "dialog": {
+      "cancel": "Annulla",
+      "choosePlaylist": {
+        "title": "Scegli la playlist di combattimento",
+        "content": "Seleziona quale playlist avviare per questo combattimento. Annullando, la musica corrente continuerà senza modifiche."
+      },
+      "playlistConfig": {
+        "notes": "Seleziona fino a 3 playlist da utilizzare durante il combattimento. Se ne configuri più di una, all'avvio del combat ti verrà chiesto quale avviare. Lascia 'Nessuna' per gli slot non utilizzati.",
+        "slotLabel": "Playlist",
+        "none": "— Nessuna —",
+        "save": "Salva"
+      }
+    }
+  }
+}

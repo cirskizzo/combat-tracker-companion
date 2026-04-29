@@ -1,0 +1,43 @@
+{
+  "CTC": {
+    "module": {
+      "title": "Combat Tracker Companion"
+    },
+    "settings": {
+      "musicEnabled": {
+        "name": "Enable combat music",
+        "hint": "When enabled, a chosen playlist will start playing automatically at the beginning of combat."
+      },
+      "pauseOnlyMusic": {
+        "name": "Pause only the Music channel",
+        "hint": "When enabled, only playlists with the 'Music' channel are paused at combat start. Disable to pause all currently playing playlists."
+      },
+      "combatPlaylists": {
+        "name": "Combat playlists",
+        "hint": "List of playlists to use during combat (maximum 3)."
+      },
+      "combatPlaylistsMenu": {
+        "name": "Combat playlists",
+        "label": "Configure Playlists",
+        "hint": "Open this menu to pick up to 3 playlists to use during combat. If you configure more than one, you will be prompted to choose which one to play when combat starts."
+      },
+      "trackerExtrasEnabled": {
+        "name": "Show secondary resource in tracker",
+        "hint": "When enabled, the standard Combat Tracker will also show the secondary resource (e.g. AC) next to the primary one (e.g. HP). Values and colors are read from the Carousel Combat Tracker module configuration. Visible only to the GM."
+      }
+    },
+    "dialog": {
+      "cancel": "Cancel",
+      "choosePlaylist": {
+        "title": "Choose combat playlist",
+        "content": "Select which playlist to start for this combat. Cancelling will keep the current music playing unchanged."
+      },
+      "playlistConfig": {
+        "notes": "Select up to 3 playlists to use during combat. If you configure more than one, you will be prompted to choose at combat start. Leave 'None' for unused slots.",
+        "slotLabel": "Playlist",
+        "none": "— None —",
+        "save": "Save"
+      }
+    }
+  }
+}

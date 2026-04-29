@@ -1,0 +1,51 @@
+{
+  "id": "combat-tracker-companion",
+  "title": "Combat Tracker Companion",
+  "description": "Estende il Combat Tracker di Foundry VTT con auto-play di playlist musicali all'avvio del combattimento e visualizzazione di una risorsa secondaria (es. AC) nel tracker standard. Pensato per integrarsi con il modulo Carousel Combat Tracker di TheRipper93.",
+  "version": "0.1.0",
+  "compatibility": {
+    "minimum": "13",
+    "verified": "14",
+    "maximum": "14"
+  },
+  "authors": [
+    {
+      "name": "cirskizzo",
+      "url": "https://github.com/cirskizzo"
+    }
+  ],
+  "esmodules": [
+    "scripts/main.js"
+  ],
+  "styles": [
+    "styles/module.css"
+  ],
+  "languages": [
+    {
+      "lang": "it",
+      "name": "Italiano",
+      "path": "lang/it.json"
+    },
+    {
+      "lang": "en",
+      "name": "English",
+      "path": "lang/en.json"
+    }
+  ],
+  "relationships": {
+    "requires": [],
+    "recommends": [
+      {
+        "id": "combat-tracker-dock",
+        "type": "module",
+        "reason": "Usato per leggere la configurazione della risorsa secondaria e i colori. Il modulo funziona anche senza, ma con funzionalità ridotte (mostra solo la risorsa primaria)."
+      }
+    ]
+  },
+  "url": "https://github.com/cirskizzo/combat-tracker-companion",
+  "manifest": "https://github.com/cirskizzo/combat-tracker-companion/releases/latest/download/module.json",
+  "download": "https://github.com/cirskizzo/combat-tracker-companion/releases/latest/download/module.zip",
+  "readme": "https://github.com/cirskizzo/combat-tracker-companion/blob/main/README.md",
+  "bugs": "https://github.com/cirskizzo/combat-tracker-companion/issues",
+  "license": "MIT"
+}

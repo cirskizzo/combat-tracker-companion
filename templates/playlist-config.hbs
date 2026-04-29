@@ -1,0 +1,21 @@
+<form autocomplete="off">
+  <p class="notes">{{localize "CTC.dialog.playlistConfig.notes"}}</p>
+
+  {{#each slots}}
+    <div class="form-group">
+      <label>{{localize "CTC.dialog.playlistConfig.slotLabel"}} {{add this.index 1}}</label>
+      <select name="slot{{this.index}}">
+        <option value="">{{localize "CTC.dialog.playlistConfig.none"}}</option>
+        {{#each ../allPlaylists}}
+          <option value="{{this.id}}" {{#ifEquals this.id ../selectedId}}selected{{/ifEquals}}>{{this.name}}</option>
+        {{/each}}
+      </select>
+    </div>
+  {{/each}}
+
+  <footer class="sheet-footer flexrow">
+    <button type="submit">
+      <i class="fas fa-save"></i> {{localize "CTC.dialog.playlistConfig.save"}}
+    </button>
+  </footer>
+</form>

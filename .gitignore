@@ -1,0 +1,24 @@
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+Icon
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*~
+
+# Node (se in futuro userai npm/build)
+node_modules/
+package-lock.json
+yarn.lock
+
+# Build artifacts
+dist/
+build/
+*.zip
+
+# Log
+*.log

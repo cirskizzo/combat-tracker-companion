@@ -1,0 +1,46 @@
+/* Combat Tracker Companion - Stili */
+
+/* Container delle risorse iniettate nel tracker */
+.combat-tracker .ctc-resources {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-left: 8px;
+  font-size: 0.85em;
+  font-weight: bold;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Singolo valore di risorsa */
+.combat-tracker .ctc-resource {
+  padding: 0 2px;
+  text-shadow: 0 0 2px rgba(0, 0, 0, 0.6);
+}
+
+/* Separatore visivo tra primaria e secondaria */
+.combat-tracker .ctc-resources .ctc-primary + .ctc-secondary::before {
+  content: "";
+}
+
+/* Form di configurazione playlist */
+#ctc-playlist-config .form-group {
+  margin-bottom: 8px;
+}
+
+#ctc-playlist-config .form-group label {
+  font-weight: bold;
+  margin-right: 8px;
+  min-width: 80px;
+  display: inline-block;
+}
+
+#ctc-playlist-config select {
+  width: 100%;
+  max-width: 380px;
+}
+
+#ctc-playlist-config .notes {
+  font-style: italic;
+  color: var(--color-text-dark-secondary, #666);
+  margin-bottom: 12px;
+}
