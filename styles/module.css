@@ -1,25 +1,37 @@
 /* Combat Tracker Companion - Stili */
 
+/* Nasconde la resource nativa di Foundry quando il nostro modulo è attivo,
+   per evitare il duplicato della risorsa primaria (PF) */
+.ctc-active .combatant .token-resource,
+.ctc-active .combatant .resource,
+.ctc-active li.combatant > .token-resource,
+.ctc-active li.combatant > .resource {
+  display: none !important;
+}
+
 /* Container delle risorse iniettate nel tracker */
-.combat-tracker .ctc-resources {
+.ctc-resources {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
+  gap: 6px;
   margin-left: 8px;
-  font-size: 0.85em;
-  font-weight: bold;
+  font-size: 0.95em;
+  font-weight: 600;
   font-variant-numeric: tabular-nums;
+  vertical-align: baseline;
 }
 
 /* Singolo valore di risorsa */
-.combat-tracker .ctc-resource {
+.ctc-resource {
   padding: 0 2px;
-  text-shadow: 0 0 2px rgba(0, 0, 0, 0.6);
+  text-shadow: 0 0 3px rgba(0, 0, 0, 0.7);
 }
 
 /* Separatore visivo tra primaria e secondaria */
-.combat-tracker .ctc-resources .ctc-primary + .ctc-secondary::before {
-  content: "";
+.ctc-sep {
+  opacity: 0.5;
+  font-weight: 400;
+  margin: 0 1px;
 }
 
 /* Form di configurazione playlist */

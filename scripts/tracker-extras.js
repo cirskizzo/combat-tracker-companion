@@ -120,6 +120,48 @@ export const TrackerExtras = {
     return fallback;
   },
 
+  /**
+   * Deriva un'etichetta human-readable per il path di una risorsa, sfruttando
+   * lo schema dei dati di sistema. Per "attributes.hp.value" risale al
+   * SchemaField padre ("attributes.hp"), il cui label è tipicamente
+   * "DND5E.HitPoints" → localizzato in "Punti Ferita".
+   * @private
+   */
+  _getResourceLabel(actor, path) {
+    if (!path) return "";
+
+    const segments = path.split(".");
+    // I label utili stanno sui SchemaField padri, non sul leaf "value"
+    if (segments[segments.length - 1] === "value") segments.pop();
+
+    while (segments.length > 0) {
+      const tryPath = segments.join(".");
+      try {
+        const field = actor?.system?.schema?.getField?.(tryPath);
+        if (field?.label) return game.i18n.localize(field.label);
+      } catch (_) {
+        // Path non valido nello schema: continua a salire
+      }
+      segments.pop();
+    }
+
+    // Fallback: ultimo segmento significativo, capitalizzato
+    const fallback =
+      path.split(".").filter((s) => s !== "value").pop() ?? path;
+    return fallback.charAt(0).toUpperCase() + fallback.slice(1);
+  },
+
+  /**
+   * Escape minimo per interpolazione sicura in attributi HTML.
+   * @private
+   */
+  _escapeAttr(s) {
+    return String(s ?? "")
+      .replace(/&/g, "&amp;")
+      .replace(/"/g, "&quot;")
+      .replace(/</g, "&lt;");
+  },
+
   // ==========================================================================
   // CALLBACK: Rendering del tracker
   // ==========================================================================
@@ -135,6 +177,11 @@ export const TrackerExtras = {
   onRenderTracker(app, html, data) {
     if (!game.user.isGM) return; // Solo GM
     if (!game.settings.get(MODULE_ID, "trackerExtrasEnabled")) return;
+
+    // Solo il Combat Tracker standard di Foundry (sidebar). Coprire anche gli
+    // override di sistema (CombatTracker5e, ecc.) confrontando l'istanza con
+    // ui.combat invece del nome della classe. Esclude Carousel e altri tracker.
+    if (app !== ui.combat) return;
 
     // Normalizza html: in v14 può essere HTMLElement, in v13 jQuery
     const $html = html instanceof jQuery ? html : $(html);
@@ -157,6 +204,10 @@ export const TrackerExtras = {
       // Nessun combatant da processare
       return;
     }
+
+    // Marca il tracker come "gestito da noi" per attivare il CSS che
+    // nasconde il valore nativo della risorsa primaria (evita il duplicato)
+    $html.addClass("ctc-active");
 
     for (const turn of turns) {
       this._injectResourcesIntoCombatant({
@@ -199,35 +250,64 @@ export const TrackerExtras = {
       ? foundry.utils.getProperty(actor.system, secondaryPath)
       : null;
 
+    const primaryLabel = primaryPath
+      ? this._getResourceLabel(actor, primaryPath)
+      : "";
+    const secondaryLabel = secondaryPath
+      ? this._getResourceLabel(actor, secondaryPath)
+      : "";
+
     // Costruisci HTML
     const parts = [];
     if (primaryValue !== null && primaryValue !== undefined) {
       parts.push(
-        `<span class="ctc-resource ctc-primary" style="color: ${primaryColor};">${primaryValue}</span>`
+        `<span class="ctc-resource ctc-primary" style="color: ${primaryColor};" data-tooltip="${this._escapeAttr(primaryLabel)}">${primaryValue}</span>`
       );
     }
     if (secondaryValue !== null && secondaryValue !== undefined) {
       parts.push(
-        `<span class="ctc-resource ctc-secondary" style="color: ${secondaryColor};">${secondaryValue}</span>`
+        `<span class="ctc-resource ctc-secondary" style="color: ${secondaryColor};" data-tooltip="${this._escapeAttr(secondaryLabel)}">${secondaryValue}</span>`
       );
     }
 
     if (parts.length === 0) return;
 
+    const separator = `<span class="ctc-sep">/</span>`;
     const $injection = $(
-      `<div class="ctc-resources">${parts.join(" / ")}</div>`
+      `<span class="ctc-resources">${parts.join(separator)}</span>`
     );
 
     // Rimuovi vecchie injection (se re-render)
     $combatant.find(".ctc-resources").remove();
 
-    // Trova il punto di inserimento.
-    // Strategia robusta: dopo il nome del combatant.
-    // Selettori comuni: .token-name, .combatant-name, h4, h3
-    let $target = $combatant.find(".token-name").first();
-    if ($target.length === 0) $target = $combatant.find(".combatant-name").first();
-    if ($target.length === 0) $target = $combatant.find("h4").first();
-    if ($target.length === 0) $target = $combatant.find("h3").first();
+    // Trova il punto di inserimento dentro l'elemento del nome del combatant,
+    // così l'injection risulta inline nella stessa riga di testo.
+    // v14 standard usa <strong class="name">; versioni precedenti usavano
+    // <h4>/<h3>. .token-name è solo un fallback estremo: è un flex column,
+    // quindi appendere lì porta l'injection su una riga sotto.
+    const selectors = [
+      ".token-name .name",
+      ".token-name strong",
+      ".token-name h4",
+      ".token-name h3",
+      ".combatant-name .name",
+      ".combatant-name h4",
+      ".combatant-name",
+      "h4.name",
+      "strong.name",
+      ".token-name",
+      "h4",
+      "h3",
+    ];
+
+    let $target = $();
+    for (const sel of selectors) {
+      const $found = $combatant.find(sel).first();
+      if ($found.length > 0) {
+        $target = $found;
+        break;
+      }
+    }
 
     if ($target.length > 0) {
       $target.append($injection);
